@@ -113,7 +113,13 @@ function redirectCodeToggle() {
     $('#post-redirect-code').removeAttr('disabled');
   }
 }
-$(document).ready(redirectCodeToggle);
+$(document).ready(function() {
+  redirectCodeToggle();
+<?php if (!empty($data_edit->redirect)) { ?>
+  $('div.main').prepend('<div class="error redirect-notify" style="display:block;"><strong>Внимание!</strong> Страница использует перенаправление</div>');
+  $('.redirect-notify').fadeOut(500).fadeIn(500);
+<?php } ?>
+});
 $('#post-redirect').change(redirectCodeToggle);
 </script>
 <?php
