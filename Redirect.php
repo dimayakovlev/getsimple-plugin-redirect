@@ -28,8 +28,9 @@ function dyRedirect() {
   global $data_index;
   if (!empty($data_index->redirect)) {
     $target = find_url((string)$data_index->redirect, returnPageField((string)$data_index->redirect, 'parent'));
-    $code = (empty($data_index->redirectCode) || (string)$data_index->redirectCode == '302') ? '302' : '301';
-    header("Location: " . $target, TRUE, $code);
+    $params = ltrim(strip_decode((string)$data_index->redirectParams), '?&');
+    $code = (empty($data_index->redirectCode) || strip_decode((string)$data_index->redirectCode) == '302') ? '302' : '301';
+    header("Location: " . $target . ($params ? ((strpos($target, '?') !== false) ? '&' : '?') . $params : ''), TRUE, $code);
   }
 }
 
@@ -65,52 +66,60 @@ function dyRedirectExtra() {
 ?>
 <div class="clearfix">
   <p><label>Настройки перенаправления страницы</label></p>
-  <p class="leftopt">
-    <label for="post-redirect">Целевая страница переадресации:</label>
-    <select class="text" id="post-redirect" name="post-redirect">
-    <?php
-      global $id;
-      global $pagesArray;
-      $count = 0;
-      foreach ($pagesArray as $page) {
-        if ($page['parent'] != '') { 
-          $parentTitle = returnPageField($page['parent'], 'title');
-          $sort = $parentTitle . ' ' . $page['title'];
-        } else {
-          $sort = $page['title'];
+  <div class="leftopt">
+    <p>
+      <label for="post-redirect">Целевая страница:</label>
+      <select class="text" id="post-redirect" name="post-redirect">
+      <?php
+        global $id;
+        global $pagesArray;
+        $count = 0;
+        foreach ($pagesArray as $page) {
+          if ($page['parent'] != '') { 
+            $parentTitle = returnPageField($page['parent'], 'title');
+            $sort = $parentTitle . ' ' . $page['title'];
+          } else {
+            $sort = $page['title'];
+          }
+          $page = array_merge($page, array('sort' => $sort));
+          $pagesArray_tmp[$count] = $page;
+          $count++;
         }
-        $page = array_merge($page, array('sort' => $sort));
-        $pagesArray_tmp[$count] = $page;
-        $count++;
-      }
-      $pagesSorted = subval_sort($pagesArray_tmp,'sort');
-      $target = ($id && isset($pagesArray[$id]['redirect'])) ? $pagesArray[$id]['redirect'] : '';
-      if ($target == '') { 
-        $none = 'selected';
-        $noneText = '< '.i18n_r('NO').' >'; 
-      } else { 
-        $none = ''; 
-        $noneText = '< '.i18n_r('NO').' >'; 
-      }
-      echo '<option ' . $none . ' value="">' . $noneText . '</option>';
-      echo dyRedirectGetPagesMenuDropdown('', '', 0, $target);
-    ?>
-    </select>
-  </p>
-  <p class="rightopt">
-    <label for="post-redirect-code">HTTP код ответа:</label>
-    <select class="text" id="post-redirect-code" name="post-redirect-code">
-      <option value="301"<?php if (isset($data_edit) && (string)$data_edit->redirectCode == '301') echo ' selected'; ?>>301 - Страница перемещена окончательно</option>
-      <option value="302"<?php if (isset($data_edit) && (string)$data_edit->redirectCode == '302') echo ' selected'; ?>>302 - Сраница перемещена временно</option>
-    </select>
-  </p>
+        $pagesSorted = subval_sort($pagesArray_tmp,'sort');
+        $target = ($id && isset($pagesArray[$id]['redirect'])) ? $pagesArray[$id]['redirect'] : '';
+        if ($target == '') { 
+          $none = 'selected';
+          $noneText = '< '.i18n_r('NO').' >'; 
+        } else { 
+          $none = ''; 
+          $noneText = '< '.i18n_r('NO').' >'; 
+        }
+        echo '<option ' . $none . ' value="">' . $noneText . '</option>';
+        echo dyRedirectGetPagesMenuDropdown('', '', 0, $target);
+      ?>
+      </select>
+    </p>
+  </div>
+  <div class="rightopt">
+    <p>
+      <label for="post-redirect-code">HTTP код ответа:</label>
+      <select class="text" id="post-redirect-code" name="post-redirect-code">
+        <option value="301"<?php if (isset($data_edit) && (string)$data_edit->redirectCode == '301') echo ' selected'; ?>>301 - Страница перемещена окончательно</option>
+        <option value="302"<?php if (isset($data_edit) && (string)$data_edit->redirectCode == '302') echo ' selected'; ?>>302 - Сраница перемещена временно</option>
+      </select>
+    </p>
+    <p>
+      <label for="post-redirect-params">Строка параметров:</label>
+      <input name="post-redirect-params" id="post-redirect-params" class="text" type="text" value="<?php echo $data_edit->redirectParams; ?>">
+    </p>
+  </div>
 </div>
 <script>
 function redirectCodeToggle() {
   if ($('#post-redirect option:selected').val() == '') {
-    $('#post-redirect-code').attr('disabled','disabled');
+    $('#post-redirect-code, #post-redirect-params').attr('disabled','disabled');
   } else {
-    $('#post-redirect-code').removeAttr('disabled');
+    $('#post-redirect-code, #post-redirect-params').removeAttr('disabled');
   }
 }
 $(document).ready(function() {
@@ -127,8 +136,9 @@ $('#post-redirect').change(redirectCodeToggle);
 
 function dyRedirectSave() {
   global $xml;
-  if (isset($_POST['post-redirect']) && empty($xml->redirect) && isset($_POST['post-redirect-code']) && empty($xml->redirectCode)) {
+  if (isset($_POST['post-redirect']) && empty($xml->redirect)) {
     $xml->addChild('redirect')->addCData(safe_slash_html($_POST['post-redirect']));
-    $xml->addChild('redirectCode', $_POST['post-redirect-code']);
+    if (isset($_POST['post-redirect-code']) && empty($xml->redirectCode)) $xml->addChild('redirectCode', $_POST['post-redirect-code']);
+    if (isset($_POST['post-redirect-params']) && empty($xml->redirectParams)) $xml->addChild('redirectParams')->addCData(safe_slash_html($_POST['post-redirect-params']));
   }    
 }
