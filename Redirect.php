@@ -20,11 +20,9 @@ register_plugin(
   ''
 );
 
-add_action('index-pretemplate', 'dyRedirect');
 add_action('edit-extras', 'dyRedirectExtra');
-add_action('changedata-save', 'dyRedirectSave');
 
-function dyRedirect() {
+add_action('index-pretemplate', function() {
   global $data_index;
   if (!empty($data_index->redirect)) {
     $target = find_url((string)$data_index->redirect, returnPageField((string)$data_index->redirect, 'parent'));
@@ -32,7 +30,16 @@ function dyRedirect() {
     $code = (empty($data_index->redirectCode) || strip_decode((string)$data_index->redirectCode) == '302') ? '302' : '301';
     header("Location: " . $target . ($params ? ((strpos($target, '?') !== false) ? '&' : '?') . $params : ''), TRUE, $code);
   }
-}
+});
+
+add_action('changedata-save', function() {
+  global $xml;
+  if (isset($_POST['post-redirect']) && empty($xml->redirect)) {
+    $xml->addChild('redirect')->addCData(safe_slash_html($_POST['post-redirect']));
+    if (isset($_POST['post-redirect-code']) && empty($xml->redirectCode)) $xml->addChild('redirectCode', $_POST['post-redirect-code']);
+    if (isset($_POST['post-redirect-params']) && empty($xml->redirectParams)) $xml->addChild('redirectParams')->addCData(safe_slash_html($_POST['post-redirect-params']));
+  }
+});
 
 function dyRedirectGetPagesMenuDropdown($parentitem, $menu, $level, $target) {
   global $pagesSorted;
@@ -132,13 +139,4 @@ $(document).ready(function() {
 $('#post-redirect').change(redirectCodeToggle);
 </script>
 <?php
-}
-
-function dyRedirectSave() {
-  global $xml;
-  if (isset($_POST['post-redirect']) && empty($xml->redirect)) {
-    $xml->addChild('redirect')->addCData(safe_slash_html($_POST['post-redirect']));
-    if (isset($_POST['post-redirect-code']) && empty($xml->redirectCode)) $xml->addChild('redirectCode', $_POST['post-redirect-code']);
-    if (isset($_POST['post-redirect-params']) && empty($xml->redirectParams)) $xml->addChild('redirectParams')->addCData(safe_slash_html($_POST['post-redirect-params']));
-  }    
 }
