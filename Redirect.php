@@ -41,6 +41,28 @@ add_action('changedata-save', function() {
   }
 });
 
+add_action('pages-main', function() {
+  global $pagesArray;
+  $pages = array();
+  foreach($pagesArray as $page) {
+    if (!empty($page['redirect'])) $pages[] = $page['url'];
+  }
+  if (count($pages)) {
+?>
+<script type="text/javascript">
+  $(document).ready(function() {
+    var pages = <?php echo json_encode($pages); ?>;
+    pages.forEach(function(page) {
+      sup = " <sup>[перенаправление]</sup>";
+      $("#tr-" + page + " span.showstatus").append(sup);
+      $("#tr-" + page + " .indexColumn").append(sup);
+    });
+  });
+</script>
+<?php
+  }
+});
+
 function dyRedirectGetPagesMenuDropdown($parentitem, $menu, $level, $target) {
   global $pagesSorted;
   global $id;
